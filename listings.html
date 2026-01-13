@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yacht Listings - LuxeYachts</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-wrapper">
+                <a href="index.html" class="logo">LuxeYachts</a>
+                <ul class="nav-menu">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="listings.html" class="active">Yachts for Sale</a></li>
+                    <li><a href="#about">About</a></li>
+                    <li><a href="#contact">Contact</a></li>
+                </ul>
+                <button class="mobile-menu-toggle" aria-label="Toggle menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Header -->
+    <section class="page-header">
+        <div class="container">
+            <h1>Yachts for Sale</h1>
+            <p>Explore our complete collection of luxury yachts</p>
+        </div>
+    </section>
+
+    <!-- Listings Section -->
+    <section class="listings-section">
+        <div class="container">
+            <div class="listings-layout">
+                <!-- Filters Sidebar -->
+                <aside class="filters-sidebar">
+                    <div class="filters-header">
+                        <h3>Filters</h3>
+                        <button class="btn-text" onclick="resetFilters()">Reset All</button>
+                    </div>
+
+                    <div class="filter-group">
+                        <h4>Search</h4>
+                        <input type="text" id="search-input" placeholder="Search yachts..." class="filter-input">
+                    </div>
+
+                    <div class="filter-group">
+                        <h4>Yacht Type</h4>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" value="motor" class="type-filter"> Motor Yacht</label>
+                            <label><input type="checkbox" value="sailing" class="type-filter"> Sailing Yacht</label>
+                            <label><input type="checkbox" value="catamaran" class="type-filter"> Catamaran</label>
+                            <label><input type="checkbox" value="expedition" class="type-filter"> Expedition Yacht</label>
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <h4>Price Range</h4>
+                        <select id="price-filter" class="filter-select">
+                            <option value="">Any Price</option>
+                            <option value="0-1000000">Under $1M</option>
+                            <option value="1000000-5000000">$1M - $5M</option>
+                            <option value="5000000-10000000">$5M - $10M</option>
+                            <option value="10000000-999999999">$10M+</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <h4>Length</h4>
+                        <select id="length-filter" class="filter-select">
+                            <option value="">Any Length</option>
+                            <option value="0-50">Under 50ft</option>
+                            <option value="50-100">50-100ft</option>
+                            <option value="100-150">100-150ft</option>
+                            <option value="150-999">150ft+</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <h4>Year Built</h4>
+                        <select id="year-filter" class="filter-select">
+                            <option value="">Any Year</option>
+                            <option value="2020-2026">2020 or newer</option>
+                            <option value="2015-2019">2015-2019</option>
+                            <option value="2010-2014">2010-2014</option>
+                            <option value="2000-2009">2000-2009</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <h4>Builder</h4>
+                        <select id="builder-filter" class="filter-select">
+                            <option value="">All Builders</option>
+                            <option value="Feadship">Feadship</option>
+                            <option value="Lürssen">Lürssen</option>
+                            <option value="Benetti">Benetti</option>
+                            <option value="Sunseeker">Sunseeker</option>
+                            <option value="Princess">Princess</option>
+                            <option value="Oyster">Oyster</option>
+                        </select>
+                    </div>
+
+                    <button class="btn btn-primary btn-full" onclick="applyFilters()">Apply Filters</button>
+                </aside>
+
+                <!-- Yacht Listings -->
+                <div class="listings-content">
+                    <div class="listings-header">
+                        <div class="results-count" id="results-count">Loading yachts...</div>
+                        <div class="sort-controls">
+                            <label for="sort-select">Sort by:</label>
+                            <select id="sort-select" class="filter-select" onchange="sortListings()">
+                                <option value="price-desc">Price: High to Low</option>
+                                <option value="price-asc">Price: Low to High</option>
+                                <option value="length-desc">Length: Largest First</option>
+                                <option value="year-desc">Year: Newest First</option>
+                                <option value="name-asc">Name: A-Z</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="yacht-grid" id="yacht-listings">
+                        <!-- Populated by JavaScript -->
+                    </div>
+
+                    <div id="no-results" class="no-results" style="display: none;">
+                        <h3>No yachts found</h3>
+                        <p>Try adjusting your filters to see more results</p>
+                        <button class="btn btn-secondary" onclick="resetFilters()">Reset Filters</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-col">
+                    <h4>LuxeYachts</h4>
+                    <p>Your premier destination for luxury yacht sales and acquisitions.</p>
+                </div>
+                <div class="footer-col">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="listings.html">Browse Yachts</a></li>
+                        <li><a href="#about">About Us</a></li>
+                        <li><a href="#contact">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Contact</h4>
+                    <p>Email: info@luxeyachts.com</p>
+                    <p>Phone: +1 (555) 123-4567</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 LuxeYachts. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="data.js"></script>
+    <script src="scripts.js"></script>
+</body>
+</html>
