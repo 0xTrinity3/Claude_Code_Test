@@ -1,5 +1,6 @@
 // Global variables
-let currentYachts = [...yachtsData];
+let currentYachts = [];
+let allYachts = [];
 let currentFilters = {
     search: '',
     types: [],
@@ -8,6 +9,9 @@ let currentFilters = {
     year: '',
     builder: ''
 };
+
+// API base URL
+const API_BASE_URL = config.API_BASE_URL || 'http://localhost:3000/api';
 
 // Utility functions
 function formatPrice(price) {
@@ -29,6 +33,99 @@ function getYachtIcon(type) {
         expedition: '🚢'
     };
     return icons[type] || '🛥️';
+}
+
+// API functions
+async function fetchYachts(filters = {}) {
+    try {
+        const params = new URLSearchParams();
+
+        if (filters.search) params.set('search', filters.search);
+        if (filters.types && filters.types.length > 0) {
+            filters.types.forEach(type => params.append('type', type));
+        }
+        if (filters.builder) params.set('builder', filters.builder);
+        if (filters.location) params.set('location', filters.location);
+
+        // Price range
+        if (filters.price) {
+            const [min, max] = filters.price.split('-');
+            if (min) params.set('minPrice', min);
+            if (max) params.set('maxPrice', max);
+        }
+
+        // Length range
+        if (filters.length) {
+            const [min, max] = filters.length.split('-');
+            if (min) params.set('minLength', min);
+            if (max) params.set('maxLength', max);
+        }
+
+        // Year range
+        if (filters.year) {
+            const [min, max] = filters.year.split('-');
+            if (min) params.set('minYear', min);
+            if (max) params.set('maxYear', max);
+        }
+
+        const response = await fetch(`${API_BASE_URL}/yachts?${params.toString()}`);
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.yachts || [];
+    } catch (error) {
+        console.error('Error fetching yachts:', error);
+        showError('Unable to load yachts. Please make sure the backend server is running.');
+        return [];
+    }
+}
+
+async function fetchFeaturedYachts() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/yachts/featured`);
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.yachts || [];
+    } catch (error) {
+        console.error('Error fetching featured yachts:', error);
+        showError('Unable to load featured yachts.');
+        return [];
+    }
+}
+
+async function fetchYachtById(id) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/yachts/${id}`);
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.yacht || null;
+    } catch (error) {
+        console.error('Error fetching yacht:', error);
+        return null;
+    }
+}
+
+// Show error message
+function showError(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #dc3545; color: white; padding: 1rem 2rem; border-radius: 4px; z-index: 10000; box-shadow: 0 4px 8px rgba(0,0,0,0.2);';
+    errorDiv.textContent = message;
+    document.body.appendChild(errorDiv);
+
+    setTimeout(() => {
+        errorDiv.remove();
+    }, 5000);
 }
 
 // Create yacht card HTML
@@ -60,7 +157,7 @@ function createYachtCard(yacht) {
                         <span class="spec-value">${yacht.location}</span>
                     </div>
                 </div>
-                <div class="yacht-price">${formatPrice(yacht.price)}</div>
+                <div class="yacht-price">${formatPrice(parseFloat(yacht.price))}</div>
             </div>
         </div>
     `;
@@ -93,54 +190,15 @@ function updateResultsCount(count) {
 }
 
 // Filter functions
-function applyFilters() {
-    let filtered = [...yachtsData];
-
-    // Search filter
-    if (currentFilters.search) {
-        const search = currentFilters.search.toLowerCase();
-        filtered = filtered.filter(yacht =>
-            yacht.name.toLowerCase().includes(search) ||
-            yacht.builder.toLowerCase().includes(search) ||
-            yacht.location.toLowerCase().includes(search)
-        );
-    }
-
-    // Type filter
-    if (currentFilters.types.length > 0) {
-        filtered = filtered.filter(yacht => currentFilters.types.includes(yacht.type));
-    }
-
-    // Price filter
-    if (currentFilters.price) {
-        const [min, max] = currentFilters.price.split('-').map(Number);
-        filtered = filtered.filter(yacht => yacht.price >= min && yacht.price <= max);
-    }
-
-    // Length filter
-    if (currentFilters.length) {
-        const [min, max] = currentFilters.length.split('-').map(Number);
-        filtered = filtered.filter(yacht => yacht.length >= min && yacht.length <= max);
-    }
-
-    // Year filter
-    if (currentFilters.year) {
-        const [min, max] = currentFilters.year.split('-').map(Number);
-        filtered = filtered.filter(yacht => yacht.year >= min && yacht.year <= max);
-    }
-
-    // Builder filter
-    if (currentFilters.builder) {
-        filtered = filtered.filter(yacht => yacht.builder === currentFilters.builder);
-    }
-
-    currentYachts = filtered;
+async function applyFilters() {
+    updateResultsCount('Loading...');
+    currentYachts = await fetchYachts(currentFilters);
     displayYachts(currentYachts);
     updateResultsCount(currentYachts.length);
 }
 
 // Reset all filters
-function resetFilters() {
+async function resetFilters() {
     currentFilters = {
         search: '',
         types: [],
@@ -163,9 +221,7 @@ function resetFilters() {
         if (select) select.value = '';
     });
 
-    currentYachts = [...yachtsData];
-    displayYachts(currentYachts);
-    updateResultsCount(currentYachts.length);
+    await applyFilters();
 }
 
 // Sort listings
@@ -178,10 +234,10 @@ function sortListings() {
 
     switch (sortValue) {
         case 'price-desc':
-            sorted.sort((a, b) => b.price - a.price);
+            sorted.sort((a, b) => parseFloat(b.price) - parseFloat(a.price));
             break;
         case 'price-asc':
-            sorted.sort((a, b) => a.price - b.price);
+            sorted.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
             break;
         case 'length-desc':
             sorted.sort((a, b) => b.length - a.length);
@@ -220,16 +276,16 @@ function viewYacht(id) {
 }
 
 // Load yacht detail page
-function loadYachtDetail() {
+async function loadYachtDetail() {
     const urlParams = new URLSearchParams(window.location.search);
     const yachtId = parseInt(urlParams.get('id'));
-    const yacht = yachtsData.find(y => y.id === yachtId);
+    const yacht = await fetchYachtById(yachtId);
 
     if (!yacht) {
         document.getElementById('yacht-detail').innerHTML = `
             <div class="no-results">
                 <h3>Yacht not found</h3>
-                <p>The yacht you're looking for doesn't exist.</p>
+                <p>The yacht you're looking for doesn't exist or couldn't be loaded.</p>
                 <a href="listings.html" class="btn btn-secondary">Back to Listings</a>
             </div>
         `;
@@ -239,6 +295,16 @@ function loadYachtDetail() {
     // Update breadcrumb
     const breadcrumb = document.getElementById('breadcrumb-name');
     if (breadcrumb) breadcrumb.textContent = yacht.name;
+
+    // Parse features if they're a string
+    let features = yacht.features;
+    if (typeof features === 'string') {
+        try {
+            features = JSON.parse(features);
+        } catch (e) {
+            features = [];
+        }
+    }
 
     // Create detail HTML
     const detailHTML = `
@@ -259,7 +325,7 @@ function loadYachtDetail() {
                 <div class="detail-description">
                     <h2>Key Features</h2>
                     <ul style="list-style: none; padding-left: 0;">
-                        ${yacht.features.map(f => `<li style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-color);">✓ ${f}</li>`).join('')}
+                        ${features.map(f => `<li style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-color);">✓ ${f}</li>`).join('')}
                     </ul>
                 </div>
 
@@ -311,7 +377,7 @@ function loadYachtDetail() {
             </div>
 
             <div class="detail-sidebar">
-                <div class="detail-price">${formatPrice(yacht.price)}</div>
+                <div class="detail-price">${formatPrice(parseFloat(yacht.price))}</div>
 
                 <form class="contact-form" onsubmit="handleInquiry(event, ${yacht.id})">
                     <h3>Inquire About This Yacht</h3>
@@ -354,7 +420,7 @@ function initMobileMenu() {
 }
 
 // Initialize page based on URL
-function initPage() {
+async function initPage() {
     const path = window.location.pathname;
 
     // Initialize mobile menu on all pages
@@ -362,7 +428,7 @@ function initPage() {
 
     // Home page
     if (path.endsWith('index.html') || path.endsWith('/')) {
-        const featuredYachts = yachtsData.filter(y => y.featured).slice(0, 6);
+        const featuredYachts = await fetchFeaturedYachts();
         displayYachts(featuredYachts, 'featured-yachts');
     }
 
@@ -390,14 +456,18 @@ function initPage() {
         }
 
         // Apply filters
-        applyFilters();
+        await applyFilters();
 
         // Set up event listeners
         const searchInput = document.getElementById('search-input');
         if (searchInput) {
+            let searchTimeout;
             searchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
                 currentFilters.search = e.target.value;
-                applyFilters();
+                searchTimeout = setTimeout(() => {
+                    applyFilters();
+                }, 500); // Debounce search
             });
         }
 
@@ -448,7 +518,7 @@ function initPage() {
 
     // Detail page
     if (path.includes('detail.html')) {
-        loadYachtDetail();
+        await loadYachtDetail();
     }
 }
 
